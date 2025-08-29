@@ -4,6 +4,7 @@ const { Pool } = require('pg');
 const app = express();
 const dotenv = require('dotenv');
 const cors = require('cors');
+const fs = require('fs');
 
 dotenv.config();
 
@@ -13,12 +14,17 @@ const port = process.env.PORT || 3000;
 app.use(bodyParser.json());
 app.use(cors())
 
+const useSsl = process.env.DB_SSL === 'true';
 const pool = new Pool({
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
+    ssl: useSsl ? {
+      ca: fs.readFileSync(__dirname + '/certs/eu-north-1-bundle.pem').toString(),
+      rejectUnauthorized: false,
+    } : false,
 });
 
 async function initDb() {
