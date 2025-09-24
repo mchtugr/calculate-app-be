@@ -1,4 +1,5 @@
 replicaCount: 1
+appName: calculate-app
 
 image:
   repository: 124355662495.dkr.ecr.eu-north-1.amazonaws.com/calculate-app
@@ -18,13 +19,26 @@ containerEnv:
   - name: DB_PORT
     value: "5432"
   - name: DB_USER
-    value: devuser
+    valueFrom:
+      secretKeyRef:
+        name: calculate-app-secret
+        key: DB_USER
   - name: DB_PASSWORD
-    value: devpassword
+    valueFrom:
+      secretKeyRef:
+        name: calculate-app-secret
+        key: DB_PASSWORD
   - name: DB_NAME
-    value: devdb
+    valueFrom:
+      secretKeyRef:
+        name: calculate-app-secret
+        key: DB_NAME
   - name: DB_SSL
     value: "true"
+
+ingress:
+  enabled: false
+  host: a9cf7db473dc240d291849fdd559ec40-923691792.eu-north-1.elb.amazonaws.com
 
 resources:
   limits:
@@ -40,3 +54,28 @@ hpa:
   maxReplicas: 3
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
+
+clusterSecretStore:
+  name: aws-secrets-manager
+  region: eu-north-1
+
+externalSecret:
+  data:
+    - secretKey: DB_USER # key inside the Kubernetes secret
+      remoteRef:
+        key: db-secret # aws secrets manager secret name
+        property: username # key inside the secret
+    - secretKey: DB_PASSWORD
+      remoteRef:
+        key: db-secret
+        property: password
+    - secretKey: DB_NAME
+      remoteRef:
+        key: db-secret
+        property: name
+
+serviceAccount:
+  create: true
+  name: eso-sa    
+  annotations: 
+    eks.amazonaws.com/role-arn: arn:aws:iam::124355662495:role/irsa-secretsmanager-role    
