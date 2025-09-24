@@ -48,6 +48,12 @@ app.get('/api', (req, res) => {
     });
 });
 
+app.get('/api/health', (req, res) => {
+    res.status(200).json({
+        status: 'OK'
+    });
+});
+
 
 app.post('/api/add', async (req, res) => {
     const { first, second } = req.body;
