@@ -41,7 +41,7 @@ async function initDb() {
 
 initDb().catch(console.error);
 
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
 
     res.json({
         message: 'Welcome to the backend!'
@@ -49,7 +49,7 @@ app.get('/', (req, res) => {
 });
 
 
-app.post('/add', async (req, res) => {
+app.post('/api/add', async (req, res) => {
     const { first, second } = req.body;
     const number1 = parseInt(first);
     const number2 = parseInt(second);
