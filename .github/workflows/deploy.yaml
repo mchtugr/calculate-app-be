@@ -1,0 +1,78 @@
+name: Deploy
+
+on:
+  workflow_call:
+    inputs:
+      commit-id:
+        description: 'The commit ID to deploy'
+        required: true
+        type: string
+      aws-region:
+        description: 'The AWS region where the EKS cluster is located'
+        required: false
+        type: string
+        default: 'eu-north-1'
+      namespace:
+        description: 'The Kubernetes namespace to deploy to'
+        required: false
+        type: string
+        default: 'default'
+      deployment-name:
+        description: 'The name of the Helm deployment'
+        required: true
+        type: string
+      chart-file-directory:
+        description: 'The location of the Helm chart'
+        required: false
+        type: string
+        default: './helm'
+      values-file:
+        description: 'The Helm values file to use for deployment'
+        required: false
+        type: string
+        default: './helm/values-dev.yaml'  
+    secrets:
+      EKS_ROLE_ARN:
+        description: 'The AWS Role ARN to assume for deployment'
+        required: true
+      EKS_CLUSTER_NAME:
+        description: 'The name of the EKS cluster'
+        required: true  
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ inputs.commit-id }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.EKS_ROLE_ARN }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.33.0'
+      
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.15.2
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region ${{ inputs.aws-region }} --name ${{ secrets.EKS_CLUSTER_NAME }}
+      
+      - name: Deploy to EKS
+        run: |
+          helm upgrade --install ${{ inputs.deployment-name }} ${{ inputs.chart-file-directory }} \
+            --namespace ${{ inputs.namespace }} \
+            --values ${{ inputs.values-file}} \
+            --set image.tag=${{ inputs.commit-id }}

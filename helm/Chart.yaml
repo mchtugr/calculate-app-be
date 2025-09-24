@@ -1,0 +1,5 @@
+version: v2
+name: calculate-app-backend
+description: A Helm chart for Calculator App Backend
+type: application
+version: 0.1.0

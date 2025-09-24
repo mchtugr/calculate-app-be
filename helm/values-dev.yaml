@@ -1,0 +1,42 @@
+replicaCount: 1
+
+image:
+  repository: 124355662495.dkr.ecr.eu-north-1.amazonaws.com/calculate-app
+  tag: bbcd131d602742ade001f1623fddc74a7d9f9457
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 3000
+  targetPort: 3000
+
+containerEnv:
+  - name: NODE_ENV
+    value: development
+  - name: DB_HOST
+    value: my-postgres-db.ctukiwky8bax.eu-north-1.rds.amazonaws.com
+  - name: DB_PORT
+    value: "5432"
+  - name: DB_USER
+    value: devuser
+  - name: DB_PASSWORD
+    value: devpassword
+  - name: DB_NAME
+    value: devdb
+  - name: DB_SSL
+    value: "true"
+
+resources:
+  limits:
+    cpu: "200m"
+    memory: "256Mi"
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
