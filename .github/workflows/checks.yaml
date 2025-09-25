@@ -7,9 +7,22 @@ on:
 
 env:
   AWS_REGION: eu-north-1
-  ECR_REPOSITORY: calculate-app
+  ECR_REPOSITORY: calculate-app-be
+  DEPLOYMENT_NAME: calculate-app-be
+  CHART_FILE_DIRECTORY: ./helm
+  VALUES_FILE: ./helm/values-dev.yaml
+  NAMESPACE: calculate-app
 
 jobs:
+    vars:
+      runs-on: ubuntu-latest
+      outputs:
+        deployment_name: ${{ env.DEPLOYMENT_NAME }}
+        chart_file_directory: ${{ env.CHART_FILE_DIRECTORY }}
+        values_file: ${{ env.VALUES_FILE }}
+        namespace: ${{ env.NAMESPACE }}
+      steps:
+        - run: echo "Exposing env variables as outputs"
     checks:
         runs-on: ubuntu-latest
         steps:
@@ -23,7 +36,7 @@ jobs:
 
             - name: Install dependencies
               run: npm install
-              
+
             - name: Run tests
               run: npm test
             
@@ -41,7 +54,7 @@ jobs:
             - name: Configure AWS credentials
               uses: aws-actions/configure-aws-credentials@v4
               with:
-                role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+                role-to-assume: ${{ secrets.EKS_ROLE_ARN }}
                 aws-region: ${{ env.AWS_REGION }}
 
             - name: Login to Amazon ECR
@@ -57,16 +70,16 @@ jobs:
                 docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
                 docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
     deploy:
-      needs: push-ecr
+      needs: [vars, push-ecr]
       permissions:
         id-token: write
       uses: "./.github/workflows/deploy.yaml"
       with:
         commit-id: ${{ github.sha }}
-        deployment-name: "calculate-app-be"
-        chart-file-directory: "./helm"
-        values-file: "./helm/values-dev.yaml"
-        namespace: 'calculate-app'
+        deployment-name: ${{ needs.vars.outputs.deployment_name }}
+        chart-file-directory: ${{ needs.vars.outputs.chart_file_directory }}
+        values-file: ${{ needs.vars.outputs.values_file }}
+        namespace: ${{ needs.vars.outputs.namespace }}
       secrets:
         EKS_ROLE_ARN: ${{ secrets.EKS_ROLE_ARN }}
         EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}  
